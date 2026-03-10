@@ -148,3 +148,18 @@ maps_flattering_test() ->
       <<"email">> => <<"test@test.su">>
     },
   ?assertEqual(FlattenMap, Result).
+
+maps_flattering_non_binary_keys_test() ->
+  Map =
+    #{
+      root => #{
+        count => 1,
+        <<"enabled">> => true
+      }
+    },
+  FlattenMap =
+    #{
+      <<"root.count">> => 1,
+      <<"root.enabled">> => true
+    },
+  ?assertEqual(FlattenMap, bson:flatten_map(Map)).
