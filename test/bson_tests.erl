@@ -115,11 +115,17 @@ maps_put_test() ->
   SimpleMap = #{<<"map">> => true, <<"simple">> => <<"very">>, atom => key, array => [1, 2, 3, 4]},
   Encoded1 = bson_binary:put_document(SimpleMap),
   {Decoded1, <<>>} = bson_binary:get_document(Encoded1),
-  ?assertEqual({<<"array">>, [1, 2, 3, 4], <<"atom">>, key, <<"map">>, true, <<"simple">>, <<"very">>}, Decoded1),
+  ?assertEqual([1, 2, 3, 4], bson:at(<<"array">>, Decoded1)),
+  ?assertEqual(key, bson:at(<<"atom">>, Decoded1)),
+  ?assertEqual(true, bson:at(<<"map">>, Decoded1)),
+  ?assertEqual(<<"very">>, bson:at(<<"simple">>, Decoded1)),
   MapWithMap = #{<<"map">> => true, <<"simple">> => <<"not">>, <<"why">> => #{<<"because">> => <<"with map">>, ok => true}},
   Encoded2 = bson_binary:put_document(MapWithMap),
   {Decoded2, <<>>} = bson_binary:get_document(Encoded2),
-  ?assertEqual({<<"map">>, true, <<"simple">>, <<"not">>, <<"why">>, {<<"ok">>, true, <<"because">>, <<"with map">>}}, Decoded2).
+  ?assertEqual(true, bson:at(<<"map">>, Decoded2)),
+  ?assertEqual(<<"not">>, bson:at(<<"simple">>, Decoded2)),
+  ?assertEqual(<<"with map">>, bson:at(<<"why.because">>, Decoded2)),
+  ?assertEqual(true, bson:at(<<"why.ok">>, Decoded2)).
 
 maps_get_test() ->
   SimpleMap = #{<<"map">> => true, <<"simple">> => <<"very">>, <<"atom">> => key, <<"array">> => [1, 2, 3, 4]},

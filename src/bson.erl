@@ -33,7 +33,7 @@
 %% application, starting with given initial result.
 -spec doc_foldl(fun ((label(), value(), A) -> A), A, document() | map()) -> A.
 doc_foldl(Fun, Acc, Doc) when is_map(Doc) ->
-  lists:foldl(fun({Label, Value}, InnerAcc) -> Fun(Label, Value, InnerAcc) end, Acc, lists:keysort(1, maps:to_list(Doc)));
+  maps:fold(Fun, Acc, Doc);
 doc_foldl(Fun, Acc, Doc) ->
   doc_foldlN(Fun, Acc, Doc, 0, tuple_size(Doc) div 2).
 
