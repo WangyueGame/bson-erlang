@@ -174,6 +174,11 @@ merge(UpDoc, BaseDoc, Fun) ->
 
 %% @doc Append two documents together
 -spec append(document(), document()) -> document().
+append(Doc1, {}) -> Doc1;
+append({}, Doc2) -> Doc2;
+append(Doc1, {Label, Value}) ->
+  Doc = erlang:append_element(Doc1, Label),
+  erlang:append_element(Doc, Value);
 append(Doc1, Doc2) -> list_to_tuple(tuple_to_list(Doc1) ++ tuple_to_list(Doc2)).
 
 % Value %

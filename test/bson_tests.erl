@@ -82,6 +82,12 @@ put_document_test() ->
   Doc = {<<"key">>, <<"value">>},
   ?assertEqual({{<<"key">>, <<"value">>}, <<>>}, bson_binary:get_document(bson_binary:put_document(Doc))).
 
+append_fast_path_test() ->
+  Doc = {<<"hello">>, 1},
+  ?assertEqual({<<"hello">>, 1, <<"world">>, 2}, bson:append(Doc, {<<"world">>, 2})),
+  ?assertEqual(Doc, bson:append(Doc, {})),
+  ?assertEqual(Doc, bson:append({}, Doc)).
+
 bson_int_too_large_test() ->
   Doc1 = {int, 16#7fffffffffffffff + 1},
   ?assertError(bson_int_too_large, bson_binary:put_document(Doc1)),
