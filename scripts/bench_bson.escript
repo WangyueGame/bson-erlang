@@ -9,7 +9,7 @@ main(Args) ->
     print_results(Results, Iterations).
 
 parse_args(Args) ->
-    parse_args(Args, #{iterations => 20000}).
+    parse_args(Args, #{iterations => 100000}).
 
 parse_args([], Config) ->
     Config;
@@ -103,7 +103,6 @@ scenarios() ->
     [
         {
             encode_command_tuple,
-            1,
             byte_size(bson_binary:put_document(CommandDoc)),
             fun(Sink) ->
                 Encoded = bson_binary:put_document(CommandDoc),
@@ -112,7 +111,6 @@ scenarios() ->
         },
         {
             encode_insert_batch,
-            4,
             byte_size(bson_binary:put_document(BatchInsertCommand)),
             fun(Sink) ->
                 Encoded = bson_binary:put_document(BatchInsertCommand),
@@ -121,7 +119,6 @@ scenarios() ->
         },
         {
             decode_reply_map,
-            4,
             byte_size(ReplyBin),
             fun(Sink) ->
                 {Decoded, <<>>} = bson_binary:get_map(ReplyBin),
@@ -130,7 +127,6 @@ scenarios() ->
         },
         {
             append_single_field,
-            1,
             undefined,
             fun(Sink) ->
                 Updated = bson:append(CommandDoc, {<<"comment">>, <<"otp27-bench">>}),
@@ -157,19 +153,18 @@ sample_document(N) ->
         <<"tags">> => [<<"alpha">>, <<"beta">>, <<"gamma">>]
     }.
 
-run_scenario({Name, Scale, Bytes, Fun}, Iterations) ->
-    ActualIterations = max(1, Iterations div Scale),
-    WarmupIterations = min(1000, max(1, ActualIterations div 10)),
+run_scenario({Name, Bytes, Fun}, Iterations) ->
+    WarmupIterations = min(1000, max(1, Iterations div 10)),
     _ = run_iterations(WarmupIterations, Fun, 0),
     erlang:garbage_collect(),
     {reductions, ReductionsStart} = process_info(self(), reductions),
     StartTime = erlang:monotonic_time(microsecond),
-    Checksum = run_iterations(ActualIterations, Fun, 0),
+    Checksum = run_iterations(Iterations, Fun, 0),
     ElapsedUs = erlang:monotonic_time(microsecond) - StartTime,
     {reductions, ReductionsEnd} = process_info(self(), reductions),
     #{
         name => Name,
-        iterations => ActualIterations,
+        iterations => Iterations,
         bytes => Bytes,
         checksum => Checksum,
         elapsed_us => ElapsedUs,

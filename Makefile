@@ -1,6 +1,6 @@
 
 REBAR ?= rebar3
-BENCH_ITERATIONS ?= 20000
+BENCH_ITERATIONS ?= 100000
 
 all: clean compile xref eunit
 
