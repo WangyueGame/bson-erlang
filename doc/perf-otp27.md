@@ -69,21 +69,21 @@ Machine-local serial benchmark runs, `BENCH_ITERATIONS=100000`.
 
 | Commit | Description | encode_command_tuple us/op | encode_insert_batch us/op | decode_reply_map us/op | append_single_field us/op |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `ae4dbc8` | Optimization baseline | 2.83 | 296.83 | 260.14 | 0.13 |
-| `ef68629` | Final optimized state, includes changes 1/2/3 | 2.28 | 266.68 | 232.26 | 0.04 |
+| `f5a8c703` | Pre-optimization baseline | 2.64 | 269.94 | 273.41 | 0.17 |
+| `793a940` | Current optimized state with unordered map encoding | 2.32 | 255.30 | 274.40 | 0.05 |
 
-Relative to baseline `ae4dbc8`, final optimized commit `ef68629`:
+Relative to baseline `f5a8c703`, current optimized commit `793a940`:
 
-- `encode_command_tuple`: `-19.43%`
-- `encode_insert_batch`: `-10.16%`
-- `decode_reply_map`: `-10.72%`
-- `append_single_field`: `-69.23%`
+- `encode_command_tuple`: `-12.12%`
+- `encode_insert_batch`: `-5.42%`
+- `decode_reply_map`: `+0.36%`
+- `append_single_field`: `-70.59%`
 
 `append_single_field` has a very small absolute runtime and is more sensitive to
-normal benchmark noise than the encode/decode cases. For append-specific changes,
-it is still better to pair this report with a focused micro-benchmark.
+normal benchmark noise than the encode/decode cases. The decode delta is within
+normal single-run noise and should not be read as a meaningful regression on its own.
 
-### Baseline `ae4dbc8`
+### Baseline `f5a8c703`
 
 ```text
 BSON OTP 27 benchmark
@@ -91,13 +91,13 @@ Requested iterations: 100000
 
 Scenario                        iters            us/op    reductions/op     bytes/op      MiB/s
 ------------------------ ------------ ---------------- ---------------- ------------ ----------
-encode_command_tuple           100000             2.83           105.08          179      60.26
-encode_insert_batch            100000           296.83         11197.31        11349      36.46
-decode_reply_map               100000           260.14          9200.94        11334      41.55
-append_single_field            100000             0.13             9.11            -          -
+encode_command_tuple           100000             2.64           105.08          179      64.65
+encode_insert_batch            100000           269.94         11377.78        11349      40.09
+decode_reply_map               100000           273.41          9200.95        11334      39.53
+append_single_field            100000             0.17             9.11            -          -
 ```
 
-### Optimized `ef68629`
+### Optimized `793a940`
 
 ```text
 BSON OTP 27 benchmark
@@ -105,8 +105,8 @@ Requested iterations: 100000
 
 Scenario                        iters            us/op    reductions/op     bytes/op      MiB/s
 ------------------------ ------------ ---------------- ---------------- ------------ ----------
-encode_command_tuple           100000             2.28           120.38          179      74.92
-encode_insert_batch            100000           266.68         11278.57        11349      40.58
-decode_reply_map               100000           232.26          9200.95        11334      46.54
-append_single_field            100000             0.04             7.03            -          -
+encode_command_tuple           100000             2.32           120.38          179      73.54
+encode_insert_batch            100000           255.30         11423.22        11349      42.39
+decode_reply_map               100000           274.40          9200.95        11334      39.39
+append_single_field            100000             0.05             7.03            -          -
 ```

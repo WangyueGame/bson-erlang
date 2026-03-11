@@ -33,6 +33,8 @@ To encode map just use `bson_binary:put_document/1`:
 	MapWithMap = #{<<"map">> => true, <<"simple">> => <<"not">>, <<"why">> => #{<<"because">> => <<"with map">>, <<"ok">> => true}},
     Encoded3 = bson_binary:put_document(MapWithMap).
 Map will be treated as bson document.
+Map input is unordered. The encoded field order is not part of the public contract.
+If field order matters, use `bson:document([{Key, Value}])` or a tuple document directly.
 To decode binary not as bson document, but as map - use `bson_binary:get_map/1`:
 
 	{GotMap3, <<>>} = bson_binary:get_map(Encoded3).
