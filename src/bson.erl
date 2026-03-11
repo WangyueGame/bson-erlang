@@ -33,7 +33,7 @@
 %% application, starting with given initial result.
 -spec doc_foldl(fun ((label(), value(), A) -> A), A, document() | map()) -> A.
 doc_foldl(Fun, Acc, Doc) when is_map(Doc) ->
-  maps:fold(Fun, Acc, Doc);
+  lists:foldl(fun({Label, Value}, InnerAcc) -> Fun(Label, Value, InnerAcc) end, Acc, lists:keysort(1, maps:to_list(Doc)));
 doc_foldl(Fun, Acc, Doc) ->
   doc_foldlN(Fun, Acc, Doc, 0, tuple_size(Doc) div 2).
 
@@ -174,6 +174,11 @@ merge(UpDoc, BaseDoc, Fun) ->
 
 %% @doc Append two documents together
 -spec append(document(), document()) -> document().
+append(Doc1, {}) -> Doc1;
+append({}, Doc2) -> Doc2;
+append(Doc1, {Label, Value}) ->
+  Doc = erlang:append_element(Doc1, Label),
+  erlang:append_element(Doc, Value);
 append(Doc1, Doc2) -> list_to_tuple(tuple_to_list(Doc1) ++ tuple_to_list(Doc2)).
 
 % Value %
@@ -303,17 +308,20 @@ flatten_map(Map) ->
 %% @private
 flatten(Key, Map, Acc) when is_map(Map) ->
   MapList = maps:to_list(Map),
-  lists:foldl(fun({K, V}, Res) -> flatten(<<(append_dot(Key))/binary, K/binary>>, V, Res) end, Acc, MapList);
+  lists:foldl(fun({K, V}, Res) -> flatten(append_key(Key, K), V, Res) end, Acc, MapList);
 flatten(Key, Value, Acc) ->
   [{Key, Value} | Acc].
 
 %% @private
-append_dot(<<>>) -> <<>>;
-append_dot(Key) when is_atom(Key) -> append_dot(atom_to_binary(Key, utf8));
-append_dot(Key) when is_integer(Key) -> append_dot(integer_to_binary(Key));
-append_dot(Key) when is_float(Key) -> append_dot(float_to_binary(Key));
-append_dot(Key) when is_list(Key) -> append_dot(list_to_binary(Key));
-append_dot(Key) -> <<Key/binary, <<".">>/binary>>.
+append_key(<<>>, Key) -> label_to_binary(Key);
+append_key(Prefix, Key) -> <<Prefix/binary, <<".">>/binary, (label_to_binary(Key))/binary>>.
+
+%% @private
+label_to_binary(Key) when is_atom(Key) -> atom_to_binary(Key, utf8);
+label_to_binary(Key) when is_integer(Key) -> integer_to_binary(Key);
+label_to_binary(Key) when is_float(Key) -> float_to_binary(Key);
+label_to_binary(Key) when is_list(Key) -> list_to_binary(Key);
+label_to_binary(Key) -> Key.
 
 %% @private
 lookup(Parts, Doc, GetFun, Default) ->

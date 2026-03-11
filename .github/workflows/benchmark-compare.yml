@@ -1,0 +1,97 @@
+name: Benchmark Compare
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Baseline git ref or SHA
+        required: true
+      candidate_ref:
+        description: Candidate git ref or SHA
+        required: true
+      bench_iterations:
+        description: Benchmark iteration count
+        required: false
+        default: '100000'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-compare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '27'
+          rebar3-version: '3.24.0'
+
+      - name: Benchmark baseline and candidate
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref }}
+          CANDIDATE_REF: ${{ inputs.candidate_ref }}
+          BENCH_ITERATIONS: ${{ inputs.bench_iterations }}
+        run: |
+          set -euo pipefail
+
+          baseline_dir="$RUNNER_TEMP/bson-bench-baseline"
+          candidate_dir="$RUNNER_TEMP/bson-bench-candidate"
+          baseline_report="$RUNNER_TEMP/bson-bench-baseline.txt"
+          candidate_report="$RUNNER_TEMP/bson-bench-candidate.txt"
+
+          git worktree add --detach "$baseline_dir" "$BASELINE_REF"
+          git worktree add --detach "$candidate_dir" "$CANDIDATE_REF"
+
+          (
+            cd "$baseline_dir"
+            rebar3 compile
+          )
+          ./scripts/bench_bson.escript --root "$baseline_dir" --iterations "$BENCH_ITERATIONS" | tee "$baseline_report"
+
+          (
+            cd "$candidate_dir"
+            rebar3 compile
+          )
+          ./scripts/bench_bson.escript --root "$candidate_dir" --iterations "$BENCH_ITERATIONS" | tee "$candidate_report"
+
+          {
+            echo "## Benchmark comparison"
+            echo
+            echo "- baseline: \`$BASELINE_REF\`"
+            echo "- candidate: \`$CANDIDATE_REF\`"
+            echo "- iterations: \`$BENCH_ITERATIONS\`"
+            echo
+            echo "### Raw baseline report"
+            echo
+            echo '```text'
+            cat "$baseline_report"
+            echo '```'
+            echo
+            echo "### Raw candidate report"
+            echo
+            echo '```text'
+            cat "$candidate_report"
+            echo '```'
+            echo
+            escript ./scripts/compare_bench_reports.escript \
+              --baseline-label "$BASELINE_REF" \
+              --baseline-report "$baseline_report" \
+              --candidate-label "$CANDIDATE_REF" \
+              --candidate-report "$candidate_report"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-reports-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/bson-bench-baseline.txt
+            ${{ runner.temp }}/bson-bench-candidate.txt
