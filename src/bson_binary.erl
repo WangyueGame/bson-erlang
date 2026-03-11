@@ -23,7 +23,8 @@ get_cstring(Bin) -> % list_to_tuple (binary:split (Bin, <<0>>)).
 
 -spec put_document(bson:document() | map()) -> binary().
 put_document(Document) ->
-  Bin = bson:doc_foldl(fun put_field_accum/3, <<>>, Document),
+  IoList = bson:doc_foldl(fun put_field_accum/3, [], Document),
+  Bin = iolist_to_binary(IoList),
   <<?put_int32(byte_size(Bin) + 5), Bin/binary, 0:8>>.
 
 -spec get_document(binary()) -> {bson:document(), binary()}.
@@ -43,9 +44,9 @@ get_map(<<?get_int32(N), Bin/binary>>) ->
 
 %% @private
 put_field_accum(Label, Value, Bin) when is_atom(Label) ->
-  <<Bin/binary, (put_field(atom_to_binary(Label, utf8), Value))/binary>>;
+  [Bin, put_field(atom_to_binary(Label, utf8), Value)];
 put_field_accum(Label, Value, Bin) when is_binary(Label) ->
-  <<Bin/binary, (put_field(Label, Value))/binary>>.
+  [Bin, put_field(Label, Value)].
 
 %% @private
 get_fields(<<>>, Acc) when is_map(Acc) -> Acc;
@@ -159,12 +160,13 @@ get_string(<<?get_int32(N), Bin/binary>>) ->
 -spec put_array(bson:arr()) -> binary().
 % encoded same as document with labels '0', '1', etc.
 put_array(Values) ->
-  {_N, Bin} = lists:foldl(fun put_value_accum/2, {0, <<>>}, Values),
+  {_N, IoList} = lists:foldl(fun put_value_accum/2, {0, []}, Values),
+  Bin = iolist_to_binary(IoList),
   <<?put_int32(byte_size(Bin) + 5), Bin/binary, 0:8>>.
 
 %% @private
 put_value_accum(Value, {N, Bin}) ->
-  {N + 1, <<Bin/binary, (put_field(bson:utf8(integer_to_list(N)), Value))/binary>>}.
+  {N + 1, [Bin, put_field(integer_to_binary(N), Value)]}.
 
 %% @private
 -spec get_array(binary(), normal | map) -> {bson:arr(), binary()}.
