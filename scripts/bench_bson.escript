@@ -2,14 +2,14 @@
 %%! -noshell
 
 main(Args) ->
-    ok = load_code_paths(),
-    #{iterations := Iterations} = parse_args(Args),
+    #{iterations := Iterations, root := RootDir} = parse_args(Args),
+    ok = load_code_paths(RootDir),
     Scenarios = scenarios(),
     Results = [run_scenario(Scenario, Iterations) || Scenario <- Scenarios],
     print_results(Results, Iterations).
 
 parse_args(Args) ->
-    parse_args(Args, #{iterations => 100000}).
+    parse_args(Args, #{iterations => 100000, root => default_root_dir()}).
 
 parse_args([], Config) ->
     Config;
@@ -17,6 +17,8 @@ parse_args(["--iterations", Value | Rest], Config) ->
     parse_args(Rest, Config#{iterations => list_to_integer(Value)});
 parse_args(["-n", Value | Rest], Config) ->
     parse_args(Rest, Config#{iterations => list_to_integer(Value)});
+parse_args(["--root", Value | Rest], Config) ->
+    parse_args(Rest, Config#{root => filename:absname(Value)});
 parse_args(["--help" | _], _Config) ->
     usage();
 parse_args([Unknown | _], _Config) ->
@@ -24,12 +26,14 @@ parse_args([Unknown | _], _Config) ->
     usage().
 
 usage() ->
-    io:format("Usage: ./scripts/bench_bson.escript [--iterations N]~n", []),
+    io:format("Usage: ./scripts/bench_bson.escript [--iterations N] [--root DIR]~n", []),
     halt(1).
 
-load_code_paths() ->
+default_root_dir() ->
     ScriptDir = filename:dirname(escript:script_name()),
-    RootDir = filename:dirname(ScriptDir),
+    filename:dirname(ScriptDir).
+
+load_code_paths(RootDir) ->
     Candidates =
         [
             filename:join([RootDir, "_build", "default", "lib", "bson", "ebin"]),
